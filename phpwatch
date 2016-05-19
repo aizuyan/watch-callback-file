@@ -89,7 +89,7 @@ do
     fi
     
     from=$basepath$change
-    to=$(getToPath $change)$change
+    to=$(getToPath $change)${change#*/}
 
     flag=$(curlUpFile "$from" "$to" "$upload")
     if [[ "$flag" == "0" ]] ; then
