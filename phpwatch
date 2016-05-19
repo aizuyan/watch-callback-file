@@ -1,0 +1,101 @@
+#!/bin/sh
+basepath=$(pwd)/
+
+configname=config.sh
+configpath="${basepath}${configname}"
+if [ ! -f "${configpath}" ] ; then
+    echo "配置文件不存在，请确保运行脚本的目录下包含【${configname}】"
+    exit 1
+fi
+
+source "${configpath}"
+
+if [ ${#paths[@]} -lt 1 ] ; then
+    echo "配置文件不存在要监控的文件，请确保文件【${configname}】中包含【paths】标书要监控的数组变量"
+    exit 1
+fi
+
+if [ -z "${upload}" ] ; then
+    echo "服务端接收接口未定义，请确保文件【${configname}】中包含【upload】标书要监控的数组变量"
+    exit 1
+fi
+
+
+
+function mergePath()
+{
+    local ret=
+    local base=$1
+    local key
+    for key in ${!paths[*]}
+    do
+        #ret="${ret} ${base}${key}"
+        ret="${ret} ${key}"
+    done
+    echo ${ret}
+}
+
+function getInotifyCommd() 
+{
+    local ret=
+    local paths=$1
+    ret="inotifywait --format %w%f -rmqe modify ${paths}"
+    echo ${ret}
+}
+realdpath=$(mergePath "${basepath}")
+command=`getInotifyCommd "${realdpath}"`
+
+function getToPath()
+{
+    local file=$1
+    local ret=
+    local end=
+    while [ ${#file} -gt 0 ]
+    do
+        if [ -n "${paths[$file]}" ] ; then
+            ret=${paths[$file]}
+            break
+        fi
+        file="${file%/*}"
+        end=$(expr index $file /)
+        if [[ $end == 0 ]] ; then
+            if [ -n "${paths[$file]}" ] ; then
+                ret=${paths[$file]}
+            fi
+            break
+        fi
+    done
+    echo "$ret"
+}
+
+function curlUpFile()
+{
+    local path=$1
+    local to=$2
+    local upload=$3
+    local ret=$(curl -s -F "file=@${path};" -F "to=${to}" "${upload}")
+    echo "$ret"
+}
+
+$command | while read change
+do
+    swp=${change:0-4}
+    if [[ "$swp" == ".swp" ]] ; then
+        continue
+    fi
+
+    if [[ "$change" =~ "\/\d+$" ]] ; then
+        continue
+    fi
+    
+    from=$basepath$change
+    to=$(getToPath $change)$change
+
+    flag=$(curlUpFile "$from" "$to" "$upload")
+    if [[ "$flag" == "0" ]] ; then
+        echo "${from} => ${to}"
+    else
+        echo "ERROR ${from} => ${to}"
+    fi
+done
+
