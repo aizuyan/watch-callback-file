@@ -137,7 +137,7 @@ do
 
 	from=$basepath$change
 	to=$(getToPath $change)${change#*/}
-	_debug "${from} => ${to}"
+	_debug "${change} # ${from} => ${to}"
 	continue
 
 	flag=$(curlUpFile "$from" "$to" "$upload")
