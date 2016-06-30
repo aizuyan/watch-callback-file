@@ -1,4 +1,8 @@
 #!/bin/sh
+
+##### 测试开关，打印日志 ######
+readonly _DEBUG=1
+
 basepath=$(pwd)/
 
 configname=config.sh
@@ -77,25 +81,70 @@ function curlUpFile()
     echo "$ret"
 }
 
+#########递归遍历某个文件夹下的所有文件，##############
+#########换行输出每一个文件的完全路径（/xx/xx）########
+#		
+#		scandir ./
+#		scandir /home/homework
+#
+###############################
+function scandir(){
+	local workdir curdir realpath
+
+	workdir=$1
+
+	if [[ -z "${workdir}" ]] ; then
+		echo "遍历的目录为空"
+		exit 1
+	fi
+
+	if [[ ! -d "$workdir" ]] ; then
+		echo "遍历的目录【${workdir}】不存在"
+		exit 1
+	fi
+
+	cd $workdir
+	curdir=$(pwd)
+
+	for dir in $(ls $curdir)
+	do
+		realpath="${curdir}/$dir"
+		if [[ -f "${realpath}" ]]; then
+			echo "${curdir}/$dir"
+		elif [[ -d "${realpath}" ]]; then
+			scandir $realpath
+		fi
+	done
+}
+
+function _debug() {
+	local msg=$1
+	if [[ $_DEBUG -eq 1 ]] ; then
+		echo -e "${msg}"
+	fi
+}
+
 $command | while read change
 do
-    swp=${change:0-4}
-    if [[ "$swp" == ".swp" ]] ; then
-        continue
-    fi
+	swp=${change:0-4}
+	if [[ "$swp" == ".swp" ]] ; then
+		continue
+	fi
 
-    if [[ "$change" =~ "\/\d+$" ]] ; then
-        continue
-    fi
-    
-    from=$basepath$change
-    to=$(getToPath $change)${change#*/}
+	if [[ "$change" =~ "\/\d+$" ]] ; then
+		continue
+	fi
 
-    flag=$(curlUpFile "$from" "$to" "$upload")
-    if [[ "$flag" == "0" ]] ; then
-        echo "${from} => ${to}"
-    else
-        echo "ERROR ${from} => ${to}"
-    fi
+	from=$basepath$change
+	to=$(getToPath $change)${change#*/}
+	_debug "${from} => ${to}"
+	continue
+
+	flag=$(curlUpFile "$from" "$to" "$upload")
+	if [[ "$flag" == "0" ]] ; then
+		echo "${from} => ${to}"
+	else
+		echo "ERROR ${from} => ${to}"
+	fi
 done
 
