@@ -117,6 +117,36 @@ function scandir(){
 	done
 }
 
+###### 处理参数 ######
+# -r 所以匹配的文件都会递归发布到服务器
+# --release 同上
+#
+function handleArgs() {
+	local opts
+	opts=$(getopt -o r --long release -n 'parse-options' -- "$@")
+	if [[ $? != 0 ]] ; then
+		echo "parse arg failed!!"
+		exit 1
+	fi
+	set -- $opts
+	while [[ -n "$1" ]]
+	do
+		case $1 in
+			-r | --release)
+				echo "do push all file to server"
+				;;
+			--)
+				shift
+				break
+				;;
+			*)
+				echo $1
+				echo "unknow option"
+		esac
+		shift
+	done
+}
+
 function _debug() {
 	local msg=$1
 	if [[ $_DEBUG -eq 1 ]] ; then

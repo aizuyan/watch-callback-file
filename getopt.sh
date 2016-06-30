@@ -3,13 +3,17 @@
 ###### 使用命令行参数变量 ######
 
 function handleArgs() {
-	echo "getopt a "$@""
-	set `getopt a "$@"`
+	local opts
+	opts=$(getopt -o r --long release -n 'parse-options' -- "$@")
+	if [[ $? != 0 ]] ; then
+		echo "parse arg failed!!"
+		exit 1
+	fi
+	set -- $opts
 	while [[ -n "$1" ]]
 	do
-		echo $1
 		case $1 in
-			-a)
+			-r | --release)
 				echo "do push all file to server"
 				;;
 			--)
@@ -24,4 +28,4 @@ function handleArgs() {
 	done
 }
 
-handleArgs "$@"
+handleArgs --release
