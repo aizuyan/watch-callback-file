@@ -3,6 +3,13 @@
 ##### 测试开关，打印日志 ######
 readonly _DEBUG=1
 
+function _debug() {
+	local msg=$1
+	if [[ $_DEBUG -eq 1 ]] ; then
+		echo -e "${msg}"
+	fi
+}
+
 basepath=$(pwd)/
 
 configname=config.sh
@@ -89,7 +96,7 @@ function curlUpFile()
 #
 ###############################
 function scandir(){
-	local workdir curdir realpath
+	local workdir curdir realpath file
 
 	workdir=$1
 
@@ -110,11 +117,14 @@ function scandir(){
 	do
 		realpath="${curdir}/$dir"
 		if [[ -f "${realpath}" ]]; then
-			echo "${curdir}/$dir"
+			file="${curdir}/${dir}"
+			echo ${file#$basepath} $file
 		elif [[ -d "${realpath}" ]]; then
 			scandir $realpath
 		fi
 	done
+
+	cd $basepath
 }
 
 ###### 处理参数 ######
@@ -122,8 +132,12 @@ function scandir(){
 # --release 同上
 #
 function handleArgs() {
+	_RELEASE=false
+	_ALL=false
+	_WATCH=false
+	_ERROR=false
 	local opts
-	opts=$(getopt -o r --long release -n 'parse-options' -- "$@")
+	opts=$(getopt -o aw --long all,watch -n 'parse-options' -- "$@")
 	if [[ $? != 0 ]] ; then
 		echo "parse arg failed!!"
 		exit 1
@@ -132,27 +146,69 @@ function handleArgs() {
 	while [[ -n "$1" ]]
 	do
 		case $1 in
-			-r | --release)
-				echo "do push all file to server"
+			\'release\')
+				_RELEASE=true
+				;;
+			-a | --all)
+				_ALL=true
+				;;
+			-w | --watch)
+				_WATCH=true
 				;;
 			--)
-				shift
-				break
 				;;
 			*)
 				echo $1
 				echo "unknow option"
+				_ERROR=true
+				;;
 		esac
 		shift
 	done
 }
 
-function _debug() {
-	local msg=$1
-	if [[ $_DEBUG -eq 1 ]] ; then
-		echo -e "${msg}"
-	fi
+
+###### 发布所有的设置目录的文件 ######
+function releaseAll() {
+	local key path change from to flag
+	for key in ${!paths[*]}
+	do
+		path="${basepath}${key}"
+		scandir $path | while read change from
+		do
+			to=$(getToPath $change)${change#*/}
+			flag=$(curlUpFile "$from" "$to" "$upload")
+			if [[ "$flag" == "0" ]] ; then
+				echo "${from} => ${to}"
+			else
+				echo "ERROR ${from} => ${to}"
+			fi
+		done
+	done
 }
+
+handleArgs $@
+if [[ $_ERROR == "true" ]] ; then
+	echo "param args error"
+	echo "help"
+	exit 1
+fi
+if [[ $_RELEASE != "true" ]] ; then
+	echo "help"
+	exit 1
+fi
+###### 发布所有的文件到服务器 ######
+if [[ $_ALL == "true" ]] ; then
+	releaseAll
+fi
+
+###### 发布完之后监控文件 ######
+if [[ $_WATCH == "true" ]] ; then
+	echo "go on watch"
+else
+	echo "not watch"
+	exit 0
+fi
 
 $command | while read change
 do
@@ -167,8 +223,6 @@ do
 
 	from=$basepath$change
 	to=$(getToPath $change)${change#*/}
-	_debug "${change} # ${from} => ${to}"
-	continue
 
 	flag=$(curlUpFile "$from" "$to" "$upload")
 	if [[ "$flag" == "0" ]] ; then
