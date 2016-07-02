@@ -1,5 +1,8 @@
 #!/bin/sh
 
+###### 包含基本的函数 ######
+. ./util.sh
+
 ##### 测试开关，打印日志 ######
 readonly _DEBUG=1
 
@@ -179,7 +182,7 @@ function releaseAll() {
 			to=$(getToPath $change)${change#*/}
 			flag=$(curlUpFile "$from" "$to" "$upload")
 			if [[ "$flag" == "0" ]] ; then
-				echo "${from} => ${to}"
+				echo "【"$(getLogTime)"】${from} => ${to}"
 			else
 				echo "ERROR ${from} => ${to}"
 			fi
@@ -226,7 +229,7 @@ do
 
 	flag=$(curlUpFile "$from" "$to" "$upload")
 	if [[ "$flag" == "0" ]] ; then
-		echo "${from} => ${to}"
+		echo "【"$(getLogTime)"】${from} => ${to}"
 	else
 		echo "ERROR ${from} => ${to}"
 	fi
