@@ -25,12 +25,12 @@ fi
 source "${configpath}"
 
 if [ ${#paths[@]} -lt 1 ] ; then
-    echo "配置文件不存在要监控的文件，请确保文件【${configname}】中包含【paths】标书要监控的数组变量"
+    echo "配置文件不存在要监控的文件，请确保文件【${configname}】中包含【paths】表示要监控的数组变量"
     exit 1
 fi
 
-if [ -z "${upload}" ] ; then
-    echo "服务端接收接口未定义，请确保文件【${configname}】中包含【upload】标书要监控的数组变量"
+if [ ${uploads[@]} -lt 1 ] ; then
+    echo "服务端接收接口未定义，请确保文件【${configname}】中包含【uploads】变量，用来指向发布到的服务器"
     exit 1
 fi
 
@@ -139,8 +139,10 @@ function handleArgs() {
 	_ALL=false
 	_WATCH=false
 	_ERROR=false
+	_DEST_SERVER=false
+	_DEST_SERVER_NAME=
 	local opts
-	opts=$(getopt -o aw --long all,watch -n 'parse-options' -- "$@")
+	opts=$(getopt -o awd --long all,watch,dest-server -n 'parse-options' -- "$@")
 	if [[ $? != 0 ]] ; then
 		echo "parse arg failed!!"
 		exit 1
@@ -157,6 +159,11 @@ function handleArgs() {
 				;;
 			-w | --watch)
 				_WATCH=true
+				;;
+			-d | --dest-server)
+				_DEST_SERVER_NAME=$2
+				_DEST_SERVER=true
+				shift 2
 				;;
 			--)
 				;;
@@ -199,6 +206,15 @@ fi
 if [[ $_RELEASE != "true" ]] ; then
 	echo "help"
 	exit 1
+fi
+###### 选择发布的服务器 ######
+if [[ $_DEST_SERVER == "true" && ! -z "${_DEST_SERVER_NAME}" ]] ; then
+	upload=$uploads[$_DEST_SERVER_NAME]
+	if [[ -z $upload ]] ; then
+		echo "help"
+		exit 1
+	fi
+
 fi
 ###### 发布所有的文件到服务器 ######
 if [[ $_ALL == "true" ]] ; then
