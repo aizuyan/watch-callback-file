@@ -29,7 +29,7 @@ if [ ${#paths[@]} -lt 1 ] ; then
     exit 1
 fi
 
-if [ ${uploads[@]} -lt 1 ] ; then
+if [ ${#uploads[@]} -lt 1 ] ; then
     echo "服务端接收接口未定义，请确保文件【${configname}】中包含【uploads】变量，用来指向发布到的服务器"
     exit 1
 fi
@@ -91,6 +91,21 @@ function curlUpFile()
     echo "$ret"
 }
 
+###### 帮助函数 ######
+function help() {
+	echo -e ""
+	echo -e "\t Usage: phpwatch <Command> <Options>"
+	echo -e ""
+	echo -e "\tCommands"
+	echo -e ""
+	echo -e "\trelease\t\t\tdeploy your files to server"
+	echo -e ""
+	echo -e "\tOptions"
+	echo -e "\t-a,--all\t\trelease all file"
+	echo -e "\t-w,--watch\t\twatch file"
+	echo -e "\t-d,--dest-server\tsend to this server name's server"
+}
+
 #########递归遍历某个文件夹下的所有文件，##############
 #########换行输出每一个文件的完全路径（/xx/xx）########
 #		
@@ -142,7 +157,7 @@ function handleArgs() {
 	_DEST_SERVER=false
 	_DEST_SERVER_NAME=
 	local opts
-	opts=$(getopt -o awd --long all,watch,dest-server -n 'parse-options' -- "$@")
+	opts=$(getopt -o awdh --long all,watch,dest-server,help -n 'parse-options' -- "$@")
 	if [[ $? != 0 ]] ; then
 		echo "parse arg failed!!"
 		exit 1
@@ -164,6 +179,10 @@ function handleArgs() {
 				_DEST_SERVER_NAME=$2
 				_DEST_SERVER=true
 				shift 2
+				;;
+			-h | --help)
+				help
+				exit 0
 				;;
 			--)
 				;;
@@ -200,18 +219,18 @@ function releaseAll() {
 handleArgs $@
 if [[ $_ERROR == "true" ]] ; then
 	echo "param args error"
-	echo "help"
+	help
 	exit 1
 fi
 if [[ $_RELEASE != "true" ]] ; then
-	echo "help"
+	help
 	exit 1
 fi
 ###### 选择发布的服务器 ######
 if [[ $_DEST_SERVER == "true" && ! -z "${_DEST_SERVER_NAME}" ]] ; then
 	upload=$uploads[$_DEST_SERVER_NAME]
 	if [[ -z $upload ]] ; then
-		echo "help"
+		help
 		exit 1
 	fi
 
