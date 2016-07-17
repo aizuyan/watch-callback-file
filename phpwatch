@@ -34,8 +34,7 @@ if [ ${#uploads[@]} -lt 1 ] ; then
     exit 1
 fi
 
-
-
+###### 拼接路径，用于监控 #####
 function mergePath()
 {
     local ret=
@@ -49,6 +48,7 @@ function mergePath()
     echo ${ret}
 }
 
+###### 根据传入的路径，返回监控命令 ###### 
 function getInotifyCommd() 
 {
     local ret=
@@ -59,6 +59,7 @@ function getInotifyCommd()
 realdpath=$(mergePath "${basepath}")
 command=`getInotifyCommd "${realdpath}"`
 
+###### 根据传入文件相对basepath路径，获取要传入服务器哪个目录 ######
 function getToPath()
 {
     local file=$1
@@ -82,6 +83,7 @@ function getToPath()
     echo "$ret"
 }
 
+###### curl将文件发送到服务器 ######
 function curlUpFile()
 {
     local path=$1
@@ -157,7 +159,7 @@ function handleArgs() {
 	_DEST_SERVER=false
 	_DEST_SERVER_NAME=
 	local opts
-	opts=$(getopt -o awdh --long all,watch,dest-server,help -n 'parse-options' -- "$@")
+	opts=$(getopt -o awd:h --long all,watch,dest-server:,help -n 'parse-options' -- "$@")
 	if [[ $? != 0 ]] ; then
 		echo "parse arg failed!!"
 		exit 1
@@ -177,8 +179,10 @@ function handleArgs() {
 				;;
 			-d | --dest-server)
 				_DEST_SERVER_NAME=$2
+				_DEST_SERVER_NAME=${_DEST_SERVER_NAME#*\'}
+				_DEST_SERVER_NAME=${_DEST_SERVER_NAME%\'*}
 				_DEST_SERVER=true
-				shift 2
+				shift 1
 				;;
 			-h | --help)
 				help
@@ -210,7 +214,7 @@ function releaseAll() {
 			if [[ "$flag" == "0" ]] ; then
 				echo "【"$(getLogTime)"】${from} => ${to}"
 			else
-				echo "ERROR ${from} => ${to}"
+				echo "【"$(getLogTime)"】ERROR ${from} => ${to}"
 			fi
 		done
 	done
@@ -228,7 +232,7 @@ if [[ $_RELEASE != "true" ]] ; then
 fi
 ###### 选择发布的服务器 ######
 if [[ $_DEST_SERVER == "true" && ! -z "${_DEST_SERVER_NAME}" ]] ; then
-	upload=$uploads[$_DEST_SERVER_NAME]
+	upload=${uploads[$_DEST_SERVER_NAME]}
 	if [[ -z $upload ]] ; then
 		help
 		exit 1
@@ -266,7 +270,7 @@ do
 	if [[ "$flag" == "0" ]] ; then
 		echo "【"$(getLogTime)"】${from} => ${to}"
 	else
-		echo "ERROR ${from} => ${to}"
+		echo "【"$(getLogTime)"】ERROR ${from} => ${to}"
 	fi
 done
 
