@@ -1,6 +1,6 @@
 install:
-	cp phpwatch /usr/local/bin/phpwatch
-	chmod 777 /usr/local/bin/phpwatch
+	cp watchfile /usr/local/bin/watchfile
+	chmod 777 /usr/local/bin/watchfile
 
 rm:
-	rm /usr/local/bin/phpwatch
+	rm /usr/local/bin/watchfile
